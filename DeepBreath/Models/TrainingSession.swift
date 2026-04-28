@@ -6,6 +6,49 @@ enum SessionType: String, Codable, CaseIterable {
     case o2 = "O2 Table"
     case freestyle = "Freestyle"
     case boxBreathing = "Box Breathing"
+    case foundationBreathing = "Foundation Breathing"
+    case staticLadder = "Static Ladder"
+    case recovery = "Recovery Session"
+    case peakAttempt = "Peak Attempt"
+
+    var icon: String {
+        switch self {
+        case .co2: return "bolt.fill"
+        case .o2: return "arrow.up.circle.fill"
+        case .freestyle: return "stopwatch.fill"
+        case .boxBreathing: return "square.fill"
+        case .foundationBreathing: return "wind"
+        case .staticLadder: return "stairs"
+        case .recovery: return "heart.fill"
+        case .peakAttempt: return "flame.fill"
+        }
+    }
+
+    var accentColor: String {
+        switch self {
+        case .co2: return "cyan"
+        case .o2: return "blue"
+        case .freestyle: return "purple"
+        case .boxBreathing: return "teal"
+        case .foundationBreathing: return "mint"
+        case .staticLadder: return "indigo"
+        case .recovery: return "green"
+        case .peakAttempt: return "orange"
+        }
+    }
+
+    var trainingFocus: String {
+        switch self {
+        case .co2: return "Building CO2 tolerance"
+        case .o2: return "Extending max hold time"
+        case .freestyle: return "Personal record attempt"
+        case .boxBreathing: return "Nervous system regulation"
+        case .foundationBreathing: return "Relaxation & diaphragm control"
+        case .staticLadder: return "Hold confidence & progression"
+        case .recovery: return "Active recovery & reset"
+        case .peakAttempt: return "Maximum effort PB test"
+        }
+    }
 }
 
 enum DifficultyLevel: String, Codable, CaseIterable {

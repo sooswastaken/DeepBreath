@@ -13,9 +13,10 @@ struct HistoryView: View {
 
                 VStack(spacing: 0) {
                     Picker("", selection: $selectedSegment) {
-                        Text("Charts").tag(0)
-                        Text("Sessions").tag(1)
-                        Text("Holds").tag(2)
+                        Text("Timeline").tag(0)
+                        Text("Charts").tag(1)
+                        Text("Sessions").tag(2)
+                        Text("Holds").tag(3)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 16)
@@ -25,19 +26,25 @@ struct HistoryView: View {
                         ZStack {
                             switch selectedSegment {
                             case 0:
-                                ProgressChartsView()
-                                    .padding(.top, 8)
+                                CurriculumTimelineView()
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .leading).combined(with: .opacity),
                                         removal: .move(edge: .leading).combined(with: .opacity)
                                     ))
                             case 1:
-                                sessionsList
+                                ProgressChartsView()
+                                    .padding(.top, 8)
                                     .transition(.asymmetric(
-                                        insertion: .move(edge: selectedSegment > 0 ? .trailing : .leading).combined(with: .opacity),
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
                                         removal: .move(edge: .leading).combined(with: .opacity)
                                     ))
                             case 2:
+                                sessionsList
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            case 3:
                                 holdsList
                                     .transition(.asymmetric(
                                         insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -158,6 +165,10 @@ struct SessionRowView: View {
         case .o2: return .blue
         case .freestyle: return .purple
         case .boxBreathing: return .teal
+        case .foundationBreathing: return .mint
+        case .staticLadder: return .indigo
+        case .recovery: return .green
+        case .peakAttempt: return .orange
         }
     }
 
@@ -167,6 +178,10 @@ struct SessionRowView: View {
         case .o2: return "arrow.up.circle.fill"
         case .freestyle: return "stopwatch.fill"
         case .boxBreathing: return "square.fill"
+        case .foundationBreathing: return "wind"
+        case .staticLadder: return "stairs"
+        case .recovery: return "heart.fill"
+        case .peakAttempt: return "flame.fill"
         }
     }
 

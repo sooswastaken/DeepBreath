@@ -6,6 +6,7 @@ struct ActiveSessionView: View {
     let sessionType: SessionType
     let difficulty: DifficultyLevel
     let pbAtTime: TimeInterval
+    var onSessionSaved: ((Int, TimeInterval) -> Void)? = nil
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -292,6 +293,7 @@ struct ActiveSessionView: View {
         )
         modelContext.insert(session)
         try? modelContext.save()
+        onSessionSaved?(completed, totalHold)
     }
 }
 

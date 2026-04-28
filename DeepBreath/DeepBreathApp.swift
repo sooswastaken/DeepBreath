@@ -10,6 +10,7 @@ struct DeepBreathApp: App {
         let schema = Schema([
             TrainingSession.self,
             FreestyleHold.self,
+            CurriculumState.self,
         ])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {

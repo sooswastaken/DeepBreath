@@ -5,8 +5,11 @@ struct HomeView: View {
     @AppStorage("personalBest") private var personalBest: Double = 60
     @AppStorage("selectedTab") private var selectedTab = 0
     @AppStorage("quickLaunchMode") private var quickLaunchMode: String = ""
+    @AppStorage("curriculumMode") private var curriculumMode = true
     @Query(sort: \TrainingSession.date, order: .reverse) private var sessions: [TrainingSession]
     @Query(sort: \FreestyleHold.date, order: .reverse) private var holds: [FreestyleHold]
+    @Query private var curriculumStates: [CurriculumState]
+    @Environment(\.modelContext) private var modelContext
 
     private var streak: Int {
         var count = 0
@@ -99,7 +102,99 @@ struct HomeView: View {
         }
     }
 
+    private var curriculumState: CurriculumState {
+        if let s = curriculumStates.first { return s }
+        let s = CurriculumState()
+        modelContext.insert(s)
+        try? modelContext.save()
+        return s
+    }
+
     private var todayCard: some View {
+        Group {
+            if curriculumMode {
+                curriculumSessionCard
+            } else {
+                legacySuggestionCard
+            }
+        }
+    }
+
+    private var curriculumSessionCard: some View {
+        let plan = CurriculumEngine.nextSession(state: curriculumState, pb: personalBest, sessions: sessions)
+        let sessionColor = typeColor(plan.type)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Today's Session")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                Spacer()
+                Text("~\(plan.estimatedMinutes) min")
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+            }
+
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(sessionColor.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: plan.type.icon)
+                        .font(.body)
+                        .foregroundStyle(sessionColor)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(plan.displayName)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(plan.type.trainingFocus)
+                        .font(.caption)
+                        .foregroundStyle(.gray)
+                }
+                Spacer()
+                Button {
+                    selectedTab = 1
+                } label: {
+                    Text("Start")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(sessionColor)
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(PressButtonStyle(scale: 0.93))
+            }
+
+            let current = curriculumState.sessionsAtTier % curriculumState.sessionsNeededToProgress
+            let needed = curriculumState.sessionsNeededToProgress
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(current) of \(needed) to next level")
+                    .font(.caption2)
+                    .foregroundStyle(.gray)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.white.opacity(0.08)).frame(height: 4)
+                        Capsule()
+                            .fill(sessionColor)
+                            .frame(width: geo.size.width * curriculumState.progressFraction, height: 4)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [sessionColor.opacity(0.1), Color.clear],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(sessionColor.opacity(0.2), lineWidth: 1))
+    }
+
+    private var legacySuggestionCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Today's Suggestion")
                 .font(.subheadline.weight(.semibold))
@@ -133,6 +228,19 @@ struct HomeView: View {
         .padding(16)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func typeColor(_ type: SessionType) -> Color {
+        switch type {
+        case .co2: return .cyan
+        case .o2: return .blue
+        case .freestyle: return .purple
+        case .boxBreathing: return .teal
+        case .foundationBreathing: return .mint
+        case .staticLadder: return .indigo
+        case .recovery: return .green
+        case .peakAttempt: return .orange
+        }
     }
 
     private var quickStartCard: some View {

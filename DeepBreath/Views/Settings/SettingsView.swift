@@ -1,8 +1,12 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
     @AppStorage("personalBest") private var personalBest: Double = 60
     @AppStorage("voiceEnabled") private var voiceEnabled = true
+    @AppStorage("curriculumMode") private var curriculumMode = true
+    @Query private var curriculumStates: [CurriculumState]
+    @Environment(\.modelContext) private var modelContext
     @State private var pbMinutes: Int = 1
     @State private var pbSeconds: Int = 0
     @State private var showPicker = false
@@ -13,6 +17,14 @@ struct SettingsView: View {
     @State private var remindersEnabled = false
     @State private var showSavedFeedback = false
 
+    private var curriculumState: CurriculumState {
+        if let s = curriculumStates.first { return s }
+        let s = CurriculumState()
+        modelContext.insert(s)
+        try? modelContext.save()
+        return s
+    }
+
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     var body: some View {
@@ -21,6 +33,7 @@ struct SettingsView: View {
                 Color.black.ignoresSafeArea()
 
                 List {
+                    curriculumSection
                     pbSection
                     audioSection
                     remindersSection
@@ -42,6 +55,74 @@ struct SettingsView: View {
             pbMinutes = Int(personalBest) / 60
             pbSeconds = Int(personalBest) % 60
             loadSavedReminders()
+        }
+    }
+
+    private var curriculumSection: some View {
+        Section {
+            Toggle("Let the App Decide", isOn: $curriculumMode)
+                .foregroundStyle(.white)
+                .tint(.cyan)
+                .listRowBackground(Color.white.opacity(0.06))
+
+            if curriculumMode {
+                let state = curriculumState
+                Picker("Training Frequency", selection: Binding(
+                    get: { state.trainingFrequencyGoal },
+                    set: { state.trainingFrequencyGoal = $0; try? modelContext.save() }
+                )) {
+                    Text("3x / week").tag(3)
+                    Text("4x / week").tag(4)
+                    Text("5x / week").tag(5)
+                }
+                .foregroundStyle(.white)
+                .tint(.cyan)
+                .listRowBackground(Color.white.opacity(0.06))
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Rest Days")
+                        .font(.subheadline)
+                        .foregroundStyle(.gray)
+                    let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+                    HStack(spacing: 6) {
+                        ForEach(1...7, id: \.self) { day in
+                            let active = state.restDays.contains(day)
+                            Button {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
+                                    var days = state.restDays
+                                    if active { days.removeAll { $0 == day } }
+                                    else { days.append(day) }
+                                    state.restDays = days
+                                    try? modelContext.save()
+                                }
+                            } label: {
+                                Text(weekdays[day - 1])
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(active ? .black : .gray)
+                                    .frame(width: 36, height: 36)
+                                    .background(active ? Color.orange : Color.white.opacity(0.1))
+                                    .clipShape(Circle())
+                                    .scaleEffect(active ? 1.05 : 1.0)
+                                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: active)
+                            }
+                            .buttonStyle(PressButtonStyle(scale: 0.88))
+                        }
+                    }
+                }
+                .listRowBackground(Color.white.opacity(0.06))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
+            }
+        } header: {
+            Text("Curriculum")
+                .foregroundStyle(.gray)
+        } footer: {
+            Text(curriculumMode
+                ? "The app picks each session based on your history and progression."
+                : "Manual mode: you choose the session type from the Train tab.")
+                .foregroundStyle(.gray.opacity(0.7))
         }
     }
 

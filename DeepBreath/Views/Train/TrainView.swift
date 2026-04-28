@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TrainView: View {
+    @AppStorage("curriculumMode") private var curriculumMode = true
     @State private var selectedMode: TrainMode?
     @AppStorage("quickLaunchMode") private var quickLaunchMode: String = ""
 
@@ -41,6 +42,14 @@ struct TrainView: View {
     }
 
     var body: some View {
+        if curriculumMode {
+            CurriculumTrainView()
+        } else {
+            manualView
+        }
+    }
+
+    private var manualView: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()

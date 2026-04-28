@@ -19,6 +19,28 @@ struct TableCalculator {
         }
     }
 
+    static func staticLadder(pb: TimeInterval, difficulty: DifficultyLevel) -> [TableRound] {
+        let base = pb * difficulty.holdPercentage
+        let step = base * 0.25
+        let rest: TimeInterval = 90
+        let ascend = (1...3).map { i in
+            TableRound(roundNumber: i, holdDuration: base + Double(i - 1) * step, restDuration: rest)
+        }
+        let descend = (1...2).map { i in
+            TableRound(roundNumber: 3 + i, holdDuration: base + Double(2 - i) * step, restDuration: rest)
+        }
+        return ascend + descend
+    }
+
+    static func recoveryTable(pb: TimeInterval) -> [TableRound] {
+        let holdTime = pb * 0.40
+        let startRest: TimeInterval = 120
+        return (1...8).map { round in
+            let rest = max(startRest - Double(round - 1) * 10, 30)
+            return TableRound(roundNumber: round, holdDuration: holdTime, restDuration: rest)
+        }
+    }
+
     static func o2Table(pb: TimeInterval, difficulty: DifficultyLevel) -> [TableRound] {
         let startHold = pb * difficulty.holdPercentage
         let maxHold = pb * 0.8

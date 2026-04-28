@@ -3,6 +3,8 @@ import SwiftData
 
 struct TableSetupView: View {
     let sessionType: SessionType
+    var presetDifficulty: DifficultyLevel? = nil
+    var onSessionSaved: ((Int, TimeInterval) -> Void)? = nil
     @AppStorage("personalBest") private var personalBest: Double = 60
     @State private var difficulty: DifficultyLevel = .normal
     @State private var pbSeconds: String = ""
@@ -60,8 +62,12 @@ struct TableSetupView: View {
                     rounds: rounds,
                     sessionType: sessionType,
                     difficulty: difficulty,
-                    pbAtTime: pb
+                    pbAtTime: pb,
+                    onSessionSaved: onSessionSaved
                 )
+            }
+            .onAppear {
+                if let preset = presetDifficulty { difficulty = preset }
             }
         }
         .preferredColorScheme(.dark)
@@ -225,6 +231,10 @@ struct TableSetupView: View {
             .glow(color: sessionType == .co2 ? .cyan : .blue, radius: 16)
         }
         .buttonStyle(PressButtonStyle(scale: 0.97))
+    }
+
+    private var startButtonColor: Color {
+        sessionType == .co2 ? .cyan : .blue
     }
 
     private func difficultyColor(_ level: DifficultyLevel) -> Color {
