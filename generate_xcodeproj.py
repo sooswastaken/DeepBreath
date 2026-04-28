@@ -42,7 +42,8 @@ def pbx_file_refs():
     lines = []
     for f in swift_files:
         name = os.path.basename(f)
-        lines.append(f'\t\t{file_ids[f]} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = {name}; path = {f}; sourceTree = "<group>"; }};')
+        ref_path = name if os.path.dirname(f) else f
+        lines.append(f'\t\t{file_ids[f]} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = {name}; path = {ref_path}; sourceTree = "<group>"; }};')
     lines.append(f'\t\t{ASSETS_ID} /* Assets.xcassets */ = {{isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; }};')
     lines.append(f'\t\t{APP_PRODUCT_ID} /* DeepBreath.app */ = {{isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DeepBreath.app; sourceTree = BUILT_PRODUCTS_DIR; }};')
     return "\n".join(lines)
@@ -123,7 +124,7 @@ def pbx_groups():
             children.append(f'\t\t\t\t{PRODUCTS_GROUP_ID} /* Products */,')
         child_str = "\n".join(children)
         src = "\"<group>\"" if path else "\"<group>\""
-        pathattr = f'path = {name};' if path else ''
+        pathattr = f'path = {name};' if path else 'path = DeepBreath;'
         return f"""\t\t{gid} /* {name} */ = {{
 \t\t\tisa = PBXGroup;
 \t\t\tchildren = (
