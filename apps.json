@@ -13,6 +13,12 @@
       "screenshotURLs": [],
       "versions": [
         {
+          "version": "1.0.17",
+          "date": "2026-04-28",
+          "downloadURL": "https://github.com/sooswastaken/DeepBreath/releases/download/v1.0.17/DeepBreath.ipa",
+          "size": 694888
+        },
+        {
           "version": "1.0.16",
           "date": "2026-04-28",
           "downloadURL": "https://github.com/sooswastaken/DeepBreath/releases/download/v1.0.16/DeepBreath.ipa",
