@@ -1,0 +1,18 @@
+{
+  "name": "DeepBreath",
+  "identifier": "com.deepbreath.altsource",
+  "apps": [
+    {
+      "name": "DeepBreath",
+      "bundleIdentifier": "com.sudarshan.app",
+      "developerName": "soos",
+      "subtitle": "Freediving & Apnea Training",
+      "localizedDescription": "Train your breath-hold with CO2 tables, O2 tables, freestyle sessions, and box breathing. Built for freedivers and apnea athletes.",
+      "iconURL": "",
+      "tintColor": "#0077BE",
+      "screenshotURLs": [],
+      "versions": []
+    }
+  ],
+  "news": []
+}
