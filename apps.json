@@ -8,7 +8,7 @@
       "developerName": "soos",
       "subtitle": "Freediving & Apnea Training",
       "localizedDescription": "Train your breath-hold with CO2 tables, O2 tables, freestyle sessions, and box breathing. Built for freedivers and apnea athletes.",
-      "iconURL": "",
+      "iconURL": "https://raw.githubusercontent.com/sooswastaken/DeepBreath/main/DeepBreath/Assets.xcassets/AppIcon.appiconset/Icon-1024.png",
       "tintColor": "#0077BE",
       "screenshotURLs": [],
       "versions": [
