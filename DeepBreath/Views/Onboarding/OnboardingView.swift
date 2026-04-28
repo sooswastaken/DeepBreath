@@ -148,13 +148,6 @@ struct OnboardingView: View {
                     .foregroundStyle(.cyan)
                     .frame(width: 140)
                     .focused($pbFieldFocused)
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("Done") { pbFieldFocused = false }
-                                .foregroundStyle(.cyan)
-                        }
-                    }
 
                 Text("sec")
                     .font(.title2)

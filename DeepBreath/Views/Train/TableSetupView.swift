@@ -43,13 +43,6 @@ struct TableSetupView: View {
             .navigationTitle(sessionType.rawValue)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { pbFieldFocused = false }
-                        .foregroundStyle(.cyan)
-                }
-            }
-            .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Close") { dismiss() }
                         .foregroundStyle(.cyan)

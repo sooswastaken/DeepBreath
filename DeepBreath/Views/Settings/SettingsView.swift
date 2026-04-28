@@ -3,14 +3,15 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("personalBest") private var personalBest: Double = 60
     @AppStorage("voiceEnabled") private var voiceEnabled = true
-    @State private var pbText = ""
+    @State private var pbMinutes: Int = 1
+    @State private var pbSeconds: Int = 0
+    @State private var showPicker = false
     @State private var notificationService = NotificationService()
     @State private var reminderDays: Set<Int> = []
     @State private var reminderHour = 8
     @State private var reminderMinute = 0
     @State private var remindersEnabled = false
     @State private var showSavedFeedback = false
-    @FocusState private var pbFieldFocused: Bool
 
     private let weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -32,15 +33,6 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        pbFieldFocused = false
-                    }
-                    .foregroundStyle(.cyan)
-                }
-            }
             .overlay(
                 savedBanner
                     .animation(.easeInOut, value: showSavedFeedback),
@@ -49,7 +41,8 @@ struct SettingsView: View {
         }
         .preferredColorScheme(.dark)
         .onAppear {
-            pbText = "\(Int(personalBest))"
+            pbMinutes = Int(personalBest) / 60
+            pbSeconds = Int(personalBest) % 60
             loadSavedReminders()
         }
         .task {
@@ -59,31 +52,48 @@ struct SettingsView: View {
 
     private var pbSection: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
+            Button {
+                withAnimation { showPicker.toggle() }
+            } label: {
                 HStack {
-                    Text("Current PB:")
-                        .foregroundStyle(.gray)
+                    Text("Personal Best")
+                        .foregroundStyle(.white)
+                    Spacer()
                     Text(personalBest.mmss)
                         .font(.headline.monospaced())
                         .foregroundStyle(.cyan)
-                }
-
-                HStack {
-                    TextField("Seconds (e.g. 90)", text: $pbText)
-                        .keyboardType(.numberPad)
-                        .foregroundStyle(.white)
-                        .focused($pbFieldFocused)
-                        .onSubmit { savePB() }
-
-                    Button("Save") {
-                        savePB()
-                        pbFieldFocused = false
-                    }
-                    .foregroundStyle(.cyan)
-                    .buttonStyle(.plain)
+                    Image(systemName: showPicker ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(.gray)
                 }
             }
             .listRowBackground(Color.white.opacity(0.06))
+
+            if showPicker {
+                HStack(spacing: 0) {
+                    Picker("Minutes", selection: $pbMinutes) {
+                        ForEach(0...9, id: \.self) { m in
+                            Text("\(m) min").tag(m)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+
+                    Picker("Seconds", selection: $pbSeconds) {
+                        ForEach(0...59, id: \.self) { s in
+                            Text(String(format: "%02d sec", s)).tag(s)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .frame(maxWidth: .infinity)
+                    .clipped()
+                }
+                .frame(height: 150)
+                .listRowBackground(Color.white.opacity(0.06))
+                .onChange(of: pbMinutes) { _, _ in savePBFromPicker() }
+                .onChange(of: pbSeconds) { _, _ in savePBFromPicker() }
+            }
         } header: {
             Text("Personal Best")
                 .foregroundStyle(.gray)
@@ -229,9 +239,10 @@ struct SettingsView: View {
         )
     }
 
-    private func savePB() {
-        guard let pb = Double(pbText), pb > 0 else { return }
-        personalBest = pb
+    private func savePBFromPicker() {
+        let seconds = Double(pbMinutes * 60 + pbSeconds)
+        guard seconds > 0 else { return }
+        personalBest = seconds
         showSavedFeedback = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
             showSavedFeedback = false
