@@ -79,8 +79,8 @@ jobs:
 
           entry = {"version": version, "date": date, "downloadURL": url, "size": size}
           vs = src["apps"][0]["versions"]
-          # avoid duplicate if re-running same build
-          if vs and vs[0].get("downloadURL") == url:
+          # replace existing entry for this version; otherwise prepend
+          if vs and vs[0].get("version") == version:
               vs[0] = entry
           else:
               vs.insert(0, entry)
