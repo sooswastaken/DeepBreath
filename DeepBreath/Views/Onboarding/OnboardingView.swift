@@ -90,6 +90,7 @@ struct OnboardingView: View {
                             .buttonStyle(PressButtonStyle(scale: 0.97))
 
                             Button {
+                                personalBest = 0
                                 withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                                     page = 3
                                 }
