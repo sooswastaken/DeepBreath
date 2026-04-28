@@ -3,6 +3,7 @@ import SwiftUI
 struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("personalBest") private var personalBest: Double = 60
+    @AppStorage("hasPB") private var hasPB: Bool = false
     @State private var acknowledged = false
     @State private var pbMinutes: Int = 1
     @State private var pbSeconds: Int = 0
@@ -40,24 +41,39 @@ struct OnboardingView: View {
                 // Action button
                 Group {
                     if page == 2 {
-                        Button {
-                            guard canStartTraining else { return }
-                            personalBest = Double(pbTotalSeconds)
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                hasSeenOnboarding = true
+                        VStack(spacing: 10) {
+                            Button {
+                                guard canStartTraining else { return }
+                                personalBest = Double(pbTotalSeconds)
+                                hasPB = true
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                    hasSeenOnboarding = true
+                                }
+                            } label: {
+                                Text("Start Training")
+                                    .font(.headline)
+                                    .foregroundStyle(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(canStartTraining ? pageAccentColor : Color.gray.opacity(0.4))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .animation(.easeInOut(duration: 0.25), value: canStartTraining)
                             }
-                        } label: {
-                            Text("Start Training")
-                                .font(.headline)
-                                .foregroundStyle(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(canStartTraining ? pageAccentColor : Color.gray.opacity(0.4))
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .animation(.easeInOut(duration: 0.25), value: canStartTraining)
+                            .disabled(!canStartTraining)
+                            .buttonStyle(PressButtonStyle(scale: 0.97))
+
+                            Button {
+                                personalBest = 0
+                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                    hasSeenOnboarding = true
+                                }
+                            } label: {
+                                Text("I don't have one yet — set it later")
+                                    .font(.subheadline)
+                                    .foregroundStyle(acknowledged ? Color.gray : Color.gray.opacity(0.35))
+                            }
+                            .disabled(!acknowledged)
                         }
-                        .disabled(!canStartTraining)
-                        .buttonStyle(PressButtonStyle(scale: 0.97))
                         .transition(.asymmetric(
                             insertion: .move(edge: .trailing).combined(with: .opacity),
                             removal: .move(edge: .leading).combined(with: .opacity)
@@ -232,13 +248,6 @@ struct OnboardingView: View {
             }
             .frame(height: 170)
             .staggeredAppear(delay: 0.34)
-
-            Text("≈ \(pbMinutes)m \(String(format: "%02d", pbSeconds))s")
-                .font(.subheadline.monospaced())
-                .foregroundStyle(.cyan)
-                .contentTransition(.numericText())
-                .animation(.easeInOut(duration: 0.15), value: pbTotalSeconds)
-                .staggeredAppear(delay: 0.42)
 
             Spacer()
         }
