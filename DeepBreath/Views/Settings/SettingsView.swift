@@ -43,9 +43,6 @@ struct SettingsView: View {
             pbSeconds = Int(personalBest) % 60
             loadSavedReminders()
         }
-        .task {
-            await notificationService.requestAuthorization()
-        }
     }
 
     private var pbSection: some View {
@@ -133,12 +130,13 @@ struct SettingsView: View {
                 .foregroundStyle(.white)
                 .tint(.cyan)
                 .onChange(of: remindersEnabled) { _, enabled in
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                        if enabled {
+                    if enabled {
+                        Task {
+                            await notificationService.requestAuthorization()
                             scheduleReminders()
-                        } else {
-                            notificationService.cancelAllReminders()
                         }
+                    } else {
+                        notificationService.cancelAllReminders()
                     }
                 }
                 .listRowBackground(Color.white.opacity(0.06))

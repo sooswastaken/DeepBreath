@@ -8,6 +8,8 @@ struct OnboardingView: View {
     @State private var pbMinutes: Int = 1
     @State private var pbSeconds: Int = 0
     @State private var page = 0
+    @State private var notificationService = NotificationService()
+    @State private var notificationsRequested = false
 
     var body: some View {
         ZStack {
@@ -24,12 +26,13 @@ struct OnboardingView: View {
                     welcomePage.tag(0)
                     safetyPage.tag(1)
                     pbSetupPage.tag(2)
+                    notificationsPage.tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
                 // Dot indicators
                 HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
+                    ForEach(0..<4) { i in
                         Capsule()
                             .fill(i == page ? pageAccentColor : Color.gray.opacity(0.35))
                             .frame(width: i == page ? 20 : 8, height: 8)
@@ -40,7 +43,7 @@ struct OnboardingView: View {
 
                 // Action button
                 Group {
-                    if page == 2 {
+                    if page == 3 {
                         VStack(spacing: 10) {
                             Button {
                                 guard canStartTraining else { return }
@@ -105,7 +108,7 @@ struct OnboardingView: View {
                         ))
                     }
                 }
-                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: page == 2)
+                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: page == 3)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 20)
             }
@@ -129,6 +132,7 @@ struct OnboardingView: View {
         case 0: return .cyan
         case 1: return .orange
         case 2: return .cyan
+        case 3: return .cyan
         default: return .cyan
         }
     }
@@ -247,6 +251,61 @@ struct OnboardingView: View {
                 .clipped()
             }
             .frame(height: 170)
+            .staggeredAppear(delay: 0.34)
+
+            Spacer()
+        }
+        .padding(32)
+    }
+
+    private var notificationsPage: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 60))
+                .foregroundStyle(.cyan)
+                .symbolEffect(.pulse)
+                .staggeredAppear(delay: 0.1, yOffset: -10)
+
+            Text("Stay Consistent")
+                .font(.title.bold())
+                .foregroundStyle(.white)
+                .staggeredAppear(delay: 0.18)
+
+            Text("Daily reminders help you build a training habit and push your breath-hold further.")
+                .font(.body)
+                .foregroundStyle(.gray)
+                .multilineTextAlignment(.center)
+                .lineSpacing(6)
+                .padding(.horizontal, 8)
+                .staggeredAppear(delay: 0.26)
+
+            Button {
+                Task {
+                    await notificationService.requestAuthorization()
+                    notificationsRequested = true
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: notificationService.isAuthorized ? "checkmark.circle.fill" : "bell.fill")
+                        .foregroundStyle(notificationService.isAuthorized ? .green : .black)
+                    Text(notificationService.isAuthorized ? "Notifications Enabled" : "Enable Daily Reminders")
+                        .font(.headline)
+                        .foregroundStyle(notificationService.isAuthorized ? .green : .black)
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(notificationService.isAuthorized ? Color.green.opacity(0.15) : Color.cyan)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(notificationService.isAuthorized ? Color.green.opacity(0.4) : Color.clear, lineWidth: 1)
+                )
+                .animation(.easeInOut(duration: 0.25), value: notificationService.isAuthorized)
+            }
+            .buttonStyle(PressButtonStyle(scale: 0.97))
+            .disabled(notificationService.isAuthorized)
             .staggeredAppear(delay: 0.34)
 
             Spacer()
