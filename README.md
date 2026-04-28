@@ -27,12 +27,12 @@ DeepBreath is distributed as a sideloadable IPA through AltStore. You do not nee
 **Steps:**
 
 1. Open AltStore on your iPhone or iPad.
-2. Go to **Sources** and tap the **+** button in the top-left corner.
+2. Go to **Browse** and tap the **+** button in the top-left corner.
 3. Enter the source URL:
    ```
    https://raw.githubusercontent.com/sooswastaken/DeepBreath/main/apps.json
    ```
-4. Once the source is added, find DeepBreath in the Sources tab and tap **Free** to install.
+4. Once the source is added, find DeepBreath in the Browse tab and tap **Free** to install.
 5. AltStore will refresh your app automatically as long as AltServer is running. Apps expire after 7 days on free accounts, so keep AltServer accessible.
 
 The source manifest is `apps.json` at the root of this repo. It is updated automatically on each release.
