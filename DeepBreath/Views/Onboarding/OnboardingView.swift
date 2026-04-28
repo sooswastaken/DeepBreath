@@ -44,38 +44,60 @@ struct OnboardingView: View {
                 // Action button
                 Group {
                     if page == 3 {
+                        // Notifications page — PB decision already made on page 2
+                        Button {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                hasSeenOnboarding = true
+                            }
+                        } label: {
+                            Text("Get Started")
+                                .font(.headline)
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(pageAccentColor)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(PressButtonStyle(scale: 0.97))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                    } else if page == 2 {
+                        // PB page — save PB or skip (skip → PBLockView appears after onboarding)
                         VStack(spacing: 10) {
                             Button {
-                                guard canStartTraining else { return }
                                 personalBest = Double(pbTotalSeconds)
                                 hasPB = true
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                    hasSeenOnboarding = true
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                    page = 3
                                 }
                             } label: {
-                                Text("Start Training")
-                                    .font(.headline)
-                                    .foregroundStyle(.black)
-                                    .frame(maxWidth: .infinity)
-                                    .padding()
-                                    .background(canStartTraining ? pageAccentColor : Color.gray.opacity(0.4))
-                                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                                    .animation(.easeInOut(duration: 0.25), value: canStartTraining)
+                                HStack {
+                                    Text("Continue")
+                                        .font(.headline)
+                                    Image(systemName: "arrow.right")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .foregroundStyle(pbTotalSeconds > 0 ? .black : .gray)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(pbTotalSeconds > 0 ? pageAccentColor : Color.white.opacity(0.08))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .animation(.easeInOut(duration: 0.25), value: pbTotalSeconds > 0)
                             }
-                            .disabled(!canStartTraining)
+                            .disabled(pbTotalSeconds == 0)
                             .buttonStyle(PressButtonStyle(scale: 0.97))
 
                             Button {
-                                personalBest = 0
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                    hasSeenOnboarding = true
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                    page = 3
                                 }
                             } label: {
                                 Text("I don't have one yet — set it later")
                                     .font(.subheadline)
-                                    .foregroundStyle(acknowledged ? Color.gray : Color.gray.opacity(0.35))
+                                    .foregroundStyle(.gray)
                             }
-                            .disabled(!acknowledged)
                         }
                         .transition(.asymmetric(
                             insertion: .move(edge: .trailing).combined(with: .opacity),
@@ -108,7 +130,7 @@ struct OnboardingView: View {
                         ))
                     }
                 }
-                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: page == 3)
+                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: page)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 20)
             }
@@ -321,7 +343,4 @@ struct OnboardingView: View {
         pbMinutes * 60 + pbSeconds
     }
 
-    private var canStartTraining: Bool {
-        acknowledged && pbTotalSeconds > 0
-    }
 }
