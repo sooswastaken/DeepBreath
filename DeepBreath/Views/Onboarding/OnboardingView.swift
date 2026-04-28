@@ -4,14 +4,13 @@ struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding = false
     @AppStorage("personalBest") private var personalBest: Double = 60
     @State private var acknowledged = false
-    @State private var pbText = "60"
+    @State private var pbMinutes: Int = 1
+    @State private var pbSeconds: Int = 0
     @State private var page = 0
-    @FocusState private var pbFieldFocused: Bool
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-                .onTapGesture { pbFieldFocused = false }
 
             VStack {
                 TabView(selection: $page) {
@@ -32,10 +31,8 @@ struct OnboardingView: View {
 
                 if page == 2 {
                     Button {
-                        guard acknowledged else { return }
-                        if let pb = Double(pbText), pb > 0 {
-                            personalBest = pb
-                        }
+                        guard canStartTraining else { return }
+                        personalBest = Double(pbTotalSeconds)
                         hasSeenOnboarding = true
                     } label: {
                         Text("Start Training")
@@ -43,10 +40,10 @@ struct OnboardingView: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(acknowledged ? Color.cyan : Color.gray)
+                            .background(canStartTraining ? Color.cyan : Color.gray)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                    .disabled(!acknowledged)
+                    .disabled(!canStartTraining)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
                 } else {
@@ -58,15 +55,27 @@ struct OnboardingView: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.cyan)
+                            .background(canContinueFromCurrentPage ? Color.cyan : Color.gray)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .disabled(!canContinueFromCurrentPage)
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
                 }
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            pbMinutes = Int(personalBest) / 60
+            pbSeconds = Int(personalBest) % 60
+        }
+        .onChange(of: page) { _, newPage in
+            if newPage > 1 && !acknowledged {
+                withAnimation {
+                    page = 1
+                }
+            }
+        }
     }
 
     private var welcomePage: some View {
@@ -140,28 +149,45 @@ struct OnboardingView: View {
                 .foregroundStyle(.gray)
                 .multilineTextAlignment(.center)
 
-            HStack {
-                TextField("Seconds", text: $pbText)
-                    .keyboardType(.numberPad)
-                    .font(.system(size: 48, weight: .bold, design: .monospaced))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.cyan)
-                    .frame(width: 140)
-                    .focused($pbFieldFocused)
+            HStack(spacing: 0) {
+                Picker("Minutes", selection: $pbMinutes) {
+                    ForEach(0...9, id: \.self) { m in
+                        Text("\(m) min").tag(m)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
 
-                Text("sec")
-                    .font(.title2)
-                    .foregroundStyle(.gray)
+                Picker("Seconds", selection: $pbSeconds) {
+                    ForEach(0...59, id: \.self) { s in
+                        Text(String(format: "%02d sec", s)).tag(s)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(maxWidth: .infinity)
+                .clipped()
             }
+            .frame(height: 170)
 
-            if let pb = Double(pbText), pb > 0 {
-                Text("≈ \(Int(pb) / 60)m \(Int(pb) % 60)s")
-                    .font(.subheadline)
-                    .foregroundStyle(.gray)
-            }
+            Text("≈ \(pbMinutes)m \(String(format: "%02d", pbSeconds))s")
+                .font(.subheadline)
+                .foregroundStyle(.gray)
 
             Spacer()
         }
         .padding(32)
+    }
+
+    private var canContinueFromCurrentPage: Bool {
+        page != 1 || acknowledged
+    }
+
+    private var pbTotalSeconds: Int {
+        pbMinutes * 60 + pbSeconds
+    }
+
+    private var canStartTraining: Bool {
+        acknowledged && pbTotalSeconds > 0
     }
 }

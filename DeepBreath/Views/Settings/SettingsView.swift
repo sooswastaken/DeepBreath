@@ -284,16 +284,18 @@ struct SafetyView: View {
                         .font(.title.bold())
                         .foregroundStyle(.white)
 
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(spacing: 16) {
                         safetyPoint("Never train breath holds alone", detail: "Always have a trained safety partner present during any water breath-hold activities.")
                         safetyPoint("Dry land training only", detail: "This app is designed for dry land training only. Never use in water without professional supervision.")
                         safetyPoint("Know the risks", detail: "Shallow water blackout can occur without warning. It is a leading cause of drowning in breath-hold divers.")
                         safetyPoint("Stop if you feel dizzy", detail: "Any lightheadedness, tingling, or visual disturbances are signals to stop immediately and breathe normally.")
                         safetyPoint("Consult your doctor", detail: "If you have cardiovascular, pulmonary, or other health conditions, consult a physician before breath-hold training.")
                     }
+                    .frame(maxWidth: 560)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
                 }
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle("Safety")
@@ -312,6 +314,7 @@ struct SafetyView: View {
                 .lineSpacing(4)
         }
         .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.orange.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
