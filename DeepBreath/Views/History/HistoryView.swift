@@ -22,17 +22,32 @@ struct HistoryView: View {
                     .padding(.vertical, 12)
 
                     ScrollView {
-                        switch selectedSegment {
-                        case 0:
-                            ProgressChartsView()
-                                .padding(.top, 8)
-                        case 1:
-                            sessionsList
-                        case 2:
-                            holdsList
-                        default:
-                            EmptyView()
+                        ZStack {
+                            switch selectedSegment {
+                            case 0:
+                                ProgressChartsView()
+                                    .padding(.top, 8)
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .leading).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            case 1:
+                                sessionsList
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: selectedSegment > 0 ? .trailing : .leading).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            case 2:
+                                holdsList
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                            default:
+                                EmptyView()
+                            }
                         }
+                        .animation(.easeInOut(duration: 0.28), value: selectedSegment)
                     }
                 }
             }
@@ -48,13 +63,15 @@ struct HistoryView: View {
             if sessions.isEmpty {
                 emptyState(icon: "calendar.badge.clock", message: "No training sessions yet.\nStart training to see your history.")
             } else {
-                ForEach(sessions) { session in
+                ForEach(Array(sessions.enumerated()), id: \.element.id) { index, session in
                     SessionRowView(session: session)
+                        .staggeredAppear(delay: Double(min(index, 6)) * 0.05)
                 }
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+        .padding(.bottom, 16)
     }
 
     private var holdsList: some View {
@@ -62,24 +79,28 @@ struct HistoryView: View {
             if holds.isEmpty {
                 emptyState(icon: "stopwatch", message: "No freestyle holds yet.\nRecord your first breath hold.")
             } else {
-                ForEach(holds) { hold in
+                ForEach(Array(holds.enumerated()), id: \.element.id) { index, hold in
                     HoldRowView(hold: hold)
+                        .staggeredAppear(delay: Double(min(index, 6)) * 0.05)
                 }
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
+        .padding(.bottom, 16)
     }
 
     private func emptyState(icon: String, message: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 48))
-                .foregroundStyle(.gray.opacity(0.5))
+                .foregroundStyle(.gray.opacity(0.4))
+                .staggeredAppear(delay: 0.1, yOffset: -8)
             Text(message)
                 .font(.subheadline)
                 .foregroundStyle(.gray)
                 .multilineTextAlignment(.center)
+                .staggeredAppear(delay: 0.2)
         }
         .padding(.top, 80)
     }
@@ -100,7 +121,7 @@ struct SessionRowView: View {
             }
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack {
+                HStack(spacing: 6) {
                     Text(session.sessionType)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.white)
@@ -163,10 +184,14 @@ struct HoldRowView: View {
 
     var body: some View {
         HStack {
-            Image(systemName: hold.isPersonalBest ? "trophy.fill" : "stopwatch.fill")
-                .font(.title3)
-                .foregroundStyle(hold.isPersonalBest ? .yellow : .purple)
-                .frame(width: 32)
+            ZStack {
+                Circle()
+                    .fill(hold.isPersonalBest ? Color.yellow.opacity(0.15) : Color.purple.opacity(0.12))
+                    .frame(width: 40, height: 40)
+                Image(systemName: hold.isPersonalBest ? "trophy.fill" : "stopwatch.fill")
+                    .font(.callout)
+                    .foregroundStyle(hold.isPersonalBest ? .yellow : .purple)
+            }
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(hold.isPersonalBest ? "Personal Best" : "Freestyle Hold")
@@ -186,5 +211,9 @@ struct HoldRowView: View {
         .padding(14)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(hold.isPersonalBest ? Color.yellow.opacity(0.2) : Color.clear, lineWidth: 1)
+        )
     }
 }

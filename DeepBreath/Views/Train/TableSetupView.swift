@@ -9,6 +9,7 @@ struct TableSetupView: View {
     @State private var showSession = false
     @Environment(\.dismiss) private var dismiss
     @FocusState private var pbFieldFocused: Bool
+    @Namespace private var difficultyNS
 
     private var pb: TimeInterval {
         if let custom = Double(pbSeconds), custom > 0 { return custom }
@@ -31,10 +32,15 @@ struct TableSetupView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         headerCard
+                            .staggeredAppear(delay: 0.05)
                         difficultyPicker
+                            .staggeredAppear(delay: 0.12)
                         pbField
+                            .staggeredAppear(delay: 0.19)
                         tablePreview
+                            .staggeredAppear(delay: 0.26)
                         startButton
+                            .staggeredAppear(delay: 0.33)
                     }
                     .padding(16)
                 }
@@ -62,10 +68,11 @@ struct TableSetupView: View {
     }
 
     private var headerCard: some View {
-        HStack {
+        HStack(spacing: 14) {
             Image(systemName: sessionType == .co2 ? "bolt.fill" : "arrow.up.circle.fill")
                 .font(.title)
                 .foregroundStyle(sessionType == .co2 ? .cyan : .blue)
+                .symbolEffect(.pulse)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(sessionType == .co2 ? "8 rounds · Hold constant · Rest decreases" : "8 rounds · Rest constant · Hold increases")
@@ -88,16 +95,26 @@ struct TableSetupView: View {
             HStack(spacing: 8) {
                 ForEach(DifficultyLevel.allCases, id: \.self) { level in
                     Button {
-                        difficulty = level
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                            difficulty = level
+                        }
                     } label: {
-                        Text(level.rawValue)
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(difficulty == level ? .black : .gray)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(difficulty == level ? difficultyColor(level) : Color.white.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        ZStack {
+                            if difficulty == level {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(difficultyColor(level))
+                                    .matchedGeometryEffect(id: "difficultyBG", in: difficultyNS)
+                            }
+                            Text(level.rawValue)
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(difficulty == level ? .black : .gray)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .background(difficulty == level ? Color.clear : Color.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
+                    .buttonStyle(PressButtonStyle(scale: 0.97))
                 }
             }
         }
@@ -116,12 +133,22 @@ struct TableSetupView: View {
                     .padding(12)
                     .background(Color.white.opacity(0.08))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(
+                                pbFieldFocused ? Color.cyan.opacity(0.6) : Color.clear,
+                                lineWidth: 1.5
+                            )
+                            .animation(.easeInOut(duration: 0.2), value: pbFieldFocused)
+                    )
                     .focused($pbFieldFocused)
 
                 Text("sec  →  Using \(Int(pb))s")
                     .font(.caption)
                     .foregroundStyle(.gray)
                     .fixedSize()
+                    .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.2), value: pb)
             }
         }
     }
@@ -147,7 +174,7 @@ struct TableSetupView: View {
 
                 Divider().background(Color.white.opacity(0.1))
 
-                ForEach(rounds) { round in
+                ForEach(Array(rounds.enumerated()), id: \.element.id) { index, round in
                     HStack {
                         Text("Round \(round.roundNumber)")
                             .frame(width: 55, alignment: .leading)
@@ -158,14 +185,17 @@ struct TableSetupView: View {
                             .frame(width: 60, alignment: .center)
                             .font(.subheadline.monospaced())
                             .foregroundStyle(.cyan)
+                            .contentTransition(.numericText())
                         Spacer()
                         Text(round.restDuration.mmss)
                             .frame(width: 60, alignment: .center)
                             .font(.subheadline.monospaced())
                             .foregroundStyle(.green)
+                            .contentTransition(.numericText())
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
+                    .animation(.easeOut(duration: 0.25).delay(Double(index) * 0.03), value: difficulty)
 
                     if round.roundNumber < rounds.count {
                         Divider().background(Color.white.opacity(0.06))
@@ -174,6 +204,7 @@ struct TableSetupView: View {
             }
             .background(Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .animation(.easeInOut(duration: 0.25), value: difficulty)
         }
     }
 
@@ -181,7 +212,7 @@ struct TableSetupView: View {
         Button {
             showSession = true
         } label: {
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "play.fill")
                 Text("Begin Session")
                     .font(.headline)
@@ -191,7 +222,9 @@ struct TableSetupView: View {
             .padding()
             .background(sessionType == .co2 ? Color.cyan : Color.blue)
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .glow(color: sessionType == .co2 ? .cyan : .blue, radius: 16)
         }
+        .buttonStyle(PressButtonStyle(scale: 0.97))
     }
 
     private func difficultyColor(_ level: DifficultyLevel) -> Color {

@@ -16,12 +16,19 @@ struct ActiveSessionView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            // Animated background that shifts with phase
+            backgroundGradient
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 1.2), value: viewModel.phase)
 
             VStack(spacing: 0) {
                 if viewModel.phase != .complete && viewModel.phase != .idle {
                     roundsList
                         .frame(maxHeight: 220)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .top).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
                 }
 
                 Spacer()
@@ -47,6 +54,28 @@ struct ActiveSessionView: View {
         }
     }
 
+    private var backgroundGradient: some View {
+        ZStack {
+            Color.black
+            LinearGradient(
+                colors: phaseBackgroundColors,
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .opacity(0.12)
+        }
+    }
+
+    private var phaseBackgroundColors: [Color] {
+        switch viewModel.phase {
+        case .holding: return [.clear, .cyan.opacity(0.4), .clear]
+        case .breatheIn: return [.clear, .orange.opacity(0.3), .clear]
+        case .resting: return [.clear, .green.opacity(0.25), .clear]
+        case .complete: return [.clear, .green.opacity(0.3), .clear]
+        default: return [.clear, .clear]
+        }
+    }
+
     private var roundsList: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
@@ -65,22 +94,30 @@ struct ActiveSessionView: View {
     }
 
     private var timerDisplay: some View {
-        VStack(spacing: 16) {
+        ZStack {
             if viewModel.phase == .complete {
                 completionDisplay
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.75).combined(with: .opacity),
+                        removal: .opacity
+                    ))
             } else if viewModel.phase == .idle {
                 idleDisplay
+                    .transition(.opacity)
             } else {
                 activeTimerDisplay
+                    .transition(.opacity)
             }
         }
+        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: viewModel.phase)
     }
 
     private var idleDisplay: some View {
         VStack(spacing: 12) {
             Image(systemName: "lungs.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(.cyan.opacity(0.6))
+                .foregroundStyle(.cyan.opacity(0.7))
+                .symbolEffect(.pulse)
             Text("Ready to train")
                 .font(.title2)
                 .foregroundStyle(.gray)
@@ -92,15 +129,34 @@ struct ActiveSessionView: View {
 
     private var activeTimerDisplay: some View {
         VStack(spacing: 8) {
+            // Phase label with crossfade on change
             Text(viewModel.phaseLabel)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(viewModel.phaseColor)
+                .id(viewModel.phaseLabel)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .bottom).combined(with: .opacity)
+                ))
+                .animation(.spring(response: 0.35, dampingFraction: 0.75), value: viewModel.phaseLabel)
 
+            // Timer ring with glow
             ZStack {
                 Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 10)
+                    .stroke(Color.white.opacity(0.07), lineWidth: 10)
                     .frame(width: 220, height: 220)
 
+                // Glow ring (blurred copy behind)
+                Circle()
+                    .trim(from: 0, to: viewModel.progress)
+                    .stroke(viewModel.phaseColor, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .frame(width: 220, height: 220)
+                    .rotationEffect(.degrees(-90))
+                    .blur(radius: 10)
+                    .opacity(0.5)
+                    .animation(.linear(duration: 0.1), value: viewModel.progress)
+
+                // Main progress ring
                 Circle()
                     .trim(from: 0, to: viewModel.progress)
                     .stroke(viewModel.phaseColor, style: StrokeStyle(lineWidth: 10, lineCap: .round))
@@ -112,6 +168,8 @@ struct ActiveSessionView: View {
                     Text(Int(ceil(viewModel.timeRemaining)).description)
                         .font(.system(size: 72, weight: .bold, design: .monospaced))
                         .foregroundStyle(.white)
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(.linear(duration: 0.1), value: viewModel.timeRemaining)
                     Text("seconds")
                         .font(.caption)
                         .foregroundStyle(.gray)
@@ -121,6 +179,8 @@ struct ActiveSessionView: View {
             Text("Round \(viewModel.currentRound) of \(rounds.count)")
                 .font(.subheadline)
                 .foregroundStyle(.gray)
+                .contentTransition(.numericText())
+                .animation(.easeInOut(duration: 0.2), value: viewModel.currentRound)
         }
     }
 
@@ -129,6 +189,8 @@ struct ActiveSessionView: View {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(.green)
+                .symbolEffect(.bounce)
+                .glow(color: .green, radius: 20)
 
             Text("Session Complete!")
                 .font(.title.bold())
@@ -143,25 +205,30 @@ struct ActiveSessionView: View {
     private var controlsArea: some View {
         VStack(spacing: 12) {
             if viewModel.phase == .idle {
-                Button {
-                    viewModel.start()
-                } label: {
-                    Label("Start Session", systemImage: "play.fill")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.cyan)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
+                VStack(spacing: 12) {
+                    Button {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            viewModel.start()
+                        }
+                    } label: {
+                        Label("Start Session", systemImage: "play.fill")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.cyan)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .glow(color: .cyan, radius: 14)
+                    }
+                    .buttonStyle(PressButtonStyle())
 
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Cancel")
-                        .font(.subheadline)
-                        .foregroundStyle(.gray)
+                    Button { dismiss() } label: {
+                        Text("Cancel")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
+                    }
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
 
             } else if viewModel.phase != .complete {
                 HStack(spacing: 12) {
@@ -176,6 +243,7 @@ struct ActiveSessionView: View {
                             .background(Color.white.opacity(0.1))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .buttonStyle(PressButtonStyle())
 
                     Button {
                         viewModel.stop()
@@ -188,11 +256,12 @@ struct ActiveSessionView: View {
                             .background(Color.red.opacity(0.3))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .buttonStyle(PressButtonStyle())
                 }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+
             } else {
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Text("Done")
                         .font(.headline)
                         .foregroundStyle(.black)
@@ -200,9 +269,13 @@ struct ActiveSessionView: View {
                         .padding()
                         .background(Color.green)
                         .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .glow(color: .green, radius: 14)
                 }
+                .buttonStyle(PressButtonStyle())
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: viewModel.phase)
         .padding(.horizontal, 20)
         .padding(.bottom, 32)
     }
@@ -254,5 +327,12 @@ struct RoundChip: View {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(isActive ? activeColor : Color.clear, lineWidth: 1)
         )
+        .scaleEffect(isActive ? 1.08 : (isCompleted ? 0.92 : 1.0))
+        .shadow(
+            color: isActive ? activeColor.opacity(0.7) : .clear,
+            radius: isActive ? 8 : 0
+        )
+        .animation(.spring(response: 0.3, dampingFraction: 0.65), value: isActive)
+        .animation(.easeInOut(duration: 0.2), value: isCompleted)
     }
 }

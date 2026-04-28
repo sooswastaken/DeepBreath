@@ -47,8 +47,8 @@ struct TrainView: View {
 
                 ScrollView {
                     VStack(spacing: 16) {
-                        ForEach(TrainMode.allCases) { mode in
-                            TrainModeCard(mode: mode) {
+                        ForEach(Array(TrainMode.allCases.enumerated()), id: \.element.id) { index, mode in
+                            TrainModeCard(mode: mode, index: index) {
                                 selectedMode = mode
                             }
                         }
@@ -61,22 +61,14 @@ struct TrainView: View {
             .toolbarColorScheme(.dark, for: .navigationBar)
             .sheet(item: $selectedMode) { mode in
                 switch mode {
-                case .co2:
-                    TableSetupView(sessionType: .co2)
-                case .o2:
-                    TableSetupView(sessionType: .o2)
-                case .freestyle:
-                    FreestyleView()
-                case .box:
-                    BoxBreathingView()
+                case .co2: TableSetupView(sessionType: .co2)
+                case .o2: TableSetupView(sessionType: .o2)
+                case .freestyle: FreestyleView()
+                case .box: BoxBreathingView()
                 }
             }
-            .onAppear {
-                applyQuickLaunch()
-            }
-            .onChange(of: quickLaunchMode) { _, _ in
-                applyQuickLaunch()
-            }
+            .onAppear { applyQuickLaunch() }
+            .onChange(of: quickLaunchMode) { _, _ in applyQuickLaunch() }
         }
         .preferredColorScheme(.dark)
     }
@@ -91,7 +83,10 @@ struct TrainView: View {
 
 struct TrainModeCard: View {
     let mode: TrainView.TrainMode
+    let index: Int
     let action: () -> Void
+
+    @State private var appeared = false
 
     var body: some View {
         Button(action: action) {
@@ -103,6 +98,7 @@ struct TrainModeCard: View {
                     Image(systemName: mode.icon)
                         .font(.title2)
                         .foregroundStyle(mode.color)
+                        .symbolEffect(.bounce, value: appeared)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -117,17 +113,25 @@ struct TrainModeCard: View {
                 Spacer()
 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.gray)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.gray.opacity(0.6))
             }
             .padding(16)
             .background(Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(mode.color.opacity(0.2), lineWidth: 1)
+                    .stroke(mode.color.opacity(appeared ? 0.25 : 0), lineWidth: 1)
+                    .animation(.easeOut(duration: 0.6).delay(Double(index) * 0.08 + 0.2), value: appeared)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressButtonStyle())
+        .opacity(appeared ? 1 : 0)
+        .offset(y: appeared ? 0 : 28)
+        .onAppear {
+            withAnimation(.spring(response: 0.55, dampingFraction: 0.8).delay(Double(index) * 0.09)) {
+                appeared = true
+            }
+        }
     }
 }

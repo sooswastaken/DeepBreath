@@ -5,6 +5,7 @@ import Charts
 struct ProgressChartsView: View {
     @Query(sort: \FreestyleHold.date, order: .forward) private var holds: [FreestyleHold]
     @Query(sort: \TrainingSession.date, order: .forward) private var sessions: [TrainingSession]
+    @State private var chartsAppeared = false
 
     private var pbOverTime: [(date: Date, value: Double)] {
         var pb: Double = 0
@@ -36,8 +37,11 @@ struct ProgressChartsView: View {
     var body: some View {
         VStack(spacing: 20) {
             summaryStats
+                .staggeredAppear(delay: 0.05)
             pbChart
+                .staggeredAppear(delay: 0.15)
             weeklyChart
+                .staggeredAppear(delay: 0.25)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
@@ -45,9 +49,9 @@ struct ProgressChartsView: View {
 
     private var summaryStats: some View {
         HStack(spacing: 12) {
-            SummaryStatCard(title: "Total Sessions", value: "\(totalSessions)", color: .cyan)
-            SummaryStatCard(title: "Avg Hold", value: averageHold.mmss, color: .blue)
-            SummaryStatCard(title: "Holds Logged", value: "\(holds.count)", color: .purple)
+            SummaryStatCard(title: "Total Sessions", value: "\(totalSessions)", color: .cyan, index: 0)
+            SummaryStatCard(title: "Avg Hold", value: averageHold.mmss, color: .blue, index: 1)
+            SummaryStatCard(title: "Holds Logged", value: "\(holds.count)", color: .purple, index: 2)
         }
     }
 
@@ -67,6 +71,7 @@ struct ProgressChartsView: View {
                     )
                     .foregroundStyle(Color.cyan)
                     .interpolationMethod(.catmullRom)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
 
                     AreaMark(
                         x: .value("Date", point.date),
@@ -86,7 +91,7 @@ struct ProgressChartsView: View {
                         y: .value("Hold (s)", point.value)
                     )
                     .foregroundStyle(Color.cyan)
-                    .symbolSize(30)
+                    .symbolSize(35)
                 }
                 .chartYAxis {
                     AxisMarks(preset: .aligned) { value in
@@ -162,10 +167,15 @@ struct ProgressChartsView: View {
     }
 
     private func emptyChartPlaceholder(_ message: String) -> some View {
-        Text(message)
-            .font(.caption)
-            .foregroundStyle(.gray)
-            .frame(maxWidth: .infinity, minHeight: 100)
+        VStack(spacing: 10) {
+            Image(systemName: "chart.line.uptrend.xyaxis")
+                .font(.title2)
+                .foregroundStyle(.gray.opacity(0.4))
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.gray)
+        }
+        .frame(maxWidth: .infinity, minHeight: 100)
     }
 
     private func weekLabel(for date: Date, calendar: Calendar) -> String {
@@ -180,12 +190,17 @@ struct SummaryStatCard: View {
     let title: String
     let value: String
     let color: Color
+    let index: Int
+
+    @State private var appeared = false
 
     var body: some View {
         VStack(spacing: 4) {
             Text(value)
                 .font(.title3.bold())
                 .foregroundStyle(color)
+                .scaleEffect(appeared ? 1 : 0.6)
+                .animation(.spring(response: 0.45, dampingFraction: 0.6).delay(Double(index) * 0.06), value: appeared)
             Text(title)
                 .font(.caption2)
                 .foregroundStyle(.gray)
@@ -195,5 +210,6 @@ struct SummaryStatCard: View {
         .padding(.vertical, 14)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .onAppear { appeared = true }
     }
 }

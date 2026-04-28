@@ -12,7 +12,13 @@ struct OnboardingView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            VStack {
+            // Subtle ambient glow shifts per page
+            pageAccentColor
+                .opacity(0.05)
+                .ignoresSafeArea()
+                .animation(.easeInOut(duration: 0.6), value: page)
+
+            VStack(spacing: 0) {
                 TabView(selection: $page) {
                     welcomePage.tag(0)
                     safetyPage.tag(1)
@@ -20,48 +26,72 @@ struct OnboardingView: View {
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
 
+                // Dot indicators
                 HStack(spacing: 8) {
                     ForEach(0..<3) { i in
-                        Circle()
-                            .fill(i == page ? Color.cyan : Color.gray.opacity(0.4))
-                            .frame(width: 8, height: 8)
+                        Capsule()
+                            .fill(i == page ? pageAccentColor : Color.gray.opacity(0.35))
+                            .frame(width: i == page ? 20 : 8, height: 8)
+                            .animation(.spring(response: 0.4, dampingFraction: 0.7), value: page)
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.vertical, 16)
 
-                if page == 2 {
-                    Button {
-                        guard canStartTraining else { return }
-                        personalBest = Double(pbTotalSeconds)
-                        hasSeenOnboarding = true
-                    } label: {
-                        Text("Start Training")
-                            .font(.headline)
-                            .foregroundStyle(.black)
+                // Action button
+                Group {
+                    if page == 2 {
+                        Button {
+                            guard canStartTraining else { return }
+                            personalBest = Double(pbTotalSeconds)
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                hasSeenOnboarding = true
+                            }
+                        } label: {
+                            Text("Start Training")
+                                .font(.headline)
+                                .foregroundStyle(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(canStartTraining ? pageAccentColor : Color.gray.opacity(0.4))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .animation(.easeInOut(duration: 0.25), value: canStartTraining)
+                        }
+                        .disabled(!canStartTraining)
+                        .buttonStyle(PressButtonStyle(scale: 0.97))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
+                    } else {
+                        Button {
+                            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                page += 1
+                            }
+                        } label: {
+                            HStack {
+                                Text("Continue")
+                                    .font(.headline)
+                                Image(systemName: "arrow.right")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .foregroundStyle(canContinueFromCurrentPage ? .black : .gray)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(canStartTraining ? Color.cyan : Color.gray)
+                            .background(canContinueFromCurrentPage ? pageAccentColor : Color.white.opacity(0.08))
                             .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .animation(.easeInOut(duration: 0.25), value: canContinueFromCurrentPage)
+                        }
+                        .disabled(!canContinueFromCurrentPage)
+                        .buttonStyle(PressButtonStyle(scale: 0.97))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .leading).combined(with: .opacity),
+                            removal: .move(edge: .trailing).combined(with: .opacity)
+                        ))
                     }
-                    .disabled(!canStartTraining)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
-                } else {
-                    Button {
-                        withAnimation { page += 1 }
-                    } label: {
-                        Text("Continue")
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(canContinueFromCurrentPage ? Color.cyan : Color.gray)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .disabled(!canContinueFromCurrentPage)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 20)
                 }
+                .animation(.spring(response: 0.45, dampingFraction: 0.8), value: page == 2)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
             }
         }
         .preferredColorScheme(.dark)
@@ -71,45 +101,65 @@ struct OnboardingView: View {
         }
         .onChange(of: page) { _, newPage in
             if newPage > 1 && !acknowledged {
-                withAnimation {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     page = 1
                 }
             }
         }
     }
 
+    private var pageAccentColor: Color {
+        switch page {
+        case 0: return .cyan
+        case 1: return .orange
+        case 2: return .cyan
+        default: return .cyan
+        }
+    }
+
     private var welcomePage: some View {
         VStack(spacing: 24) {
             Spacer()
+
             Image(systemName: "lungs.fill")
                 .font(.system(size: 80))
                 .foregroundStyle(.cyan)
                 .symbolEffect(.pulse)
+                .staggeredAppear(delay: 0.15, yOffset: -12)
 
-            Text("DeepBreath")
-                .font(.system(size: 40, weight: .bold, design: .rounded))
-                .foregroundStyle(.white)
+            VStack(spacing: 8) {
+                Text("DeepBreath")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .staggeredAppear(delay: 0.25)
 
-            Text("Train your breath hold.\nPush your limits.\nDive deeper.")
-                .font(.title3)
-                .foregroundStyle(.gray)
-                .multilineTextAlignment(.center)
-                .lineSpacing(6)
+                Text("Train your breath hold.\nPush your limits.\nDive deeper.")
+                    .font(.title3)
+                    .foregroundStyle(.gray)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(6)
+                    .staggeredAppear(delay: 0.35)
+            }
+
             Spacer()
         }
         .padding(32)
     }
 
     private var safetyPage: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 24) {
             Spacer()
+
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(.orange)
+                .symbolEffect(.pulse)
+                .staggeredAppear(delay: 0.1, yOffset: -10)
 
             Text("Safety First")
                 .font(.title.bold())
                 .foregroundStyle(.white)
+                .staggeredAppear(delay: 0.18)
 
             Text("Never train breath holds alone or in water without a buddy present.\n\nThis app is for **dry land training only**.\n\nAlways ensure you have a trained safety diver or buddy present when training in water.")
                 .font(.body)
@@ -117,16 +167,23 @@ struct OnboardingView: View {
                 .multilineTextAlignment(.center)
                 .lineSpacing(6)
                 .padding(.horizontal, 8)
+                .staggeredAppear(delay: 0.26)
 
             Toggle(isOn: $acknowledged) {
                 Text("I understand and acknowledge the safety requirements")
                     .font(.subheadline)
                     .foregroundStyle(.white)
             }
-            .tint(.cyan)
+            .tint(.orange)
             .padding()
             .background(Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(acknowledged ? Color.orange.opacity(0.4) : Color.clear, lineWidth: 1)
+                    .animation(.easeInOut(duration: 0.2), value: acknowledged)
+            )
+            .staggeredAppear(delay: 0.34)
 
             Spacer()
         }
@@ -134,20 +191,25 @@ struct OnboardingView: View {
     }
 
     private var pbSetupPage: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: 24) {
             Spacer()
+
             Image(systemName: "stopwatch.fill")
                 .font(.system(size: 60))
                 .foregroundStyle(.cyan)
+                .symbolEffect(.pulse)
+                .staggeredAppear(delay: 0.1, yOffset: -10)
 
             Text("Your Personal Best")
                 .font(.title.bold())
                 .foregroundStyle(.white)
+                .staggeredAppear(delay: 0.18)
 
-            Text("Enter your current best breath-hold time in seconds. This calibrates your training tables.")
+            Text("Enter your current best breath-hold time. This calibrates your training tables.")
                 .font(.body)
                 .foregroundStyle(.gray)
                 .multilineTextAlignment(.center)
+                .staggeredAppear(delay: 0.26)
 
             HStack(spacing: 0) {
                 Picker("Minutes", selection: $pbMinutes) {
@@ -169,10 +231,14 @@ struct OnboardingView: View {
                 .clipped()
             }
             .frame(height: 170)
+            .staggeredAppear(delay: 0.34)
 
             Text("≈ \(pbMinutes)m \(String(format: "%02d", pbSeconds))s")
-                .font(.subheadline)
-                .foregroundStyle(.gray)
+                .font(.subheadline.monospaced())
+                .foregroundStyle(.cyan)
+                .contentTransition(.numericText())
+                .animation(.easeInOut(duration: 0.15), value: pbTotalSeconds)
+                .staggeredAppear(delay: 0.42)
 
             Spacer()
         }

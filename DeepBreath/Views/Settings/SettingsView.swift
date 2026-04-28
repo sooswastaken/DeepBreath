@@ -33,11 +33,9 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
-            .overlay(
+            .overlay(alignment: .top) {
                 savedBanner
-                    .animation(.easeInOut, value: showSavedFeedback),
-                alignment: .top
-            )
+            }
         }
         .preferredColorScheme(.dark)
         .onAppear {
@@ -53,7 +51,9 @@ struct SettingsView: View {
     private var pbSection: some View {
         Section {
             Button {
-                withAnimation { showPicker.toggle() }
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                    showPicker.toggle()
+                }
             } label: {
                 HStack {
                     Text("Personal Best")
@@ -62,11 +62,16 @@ struct SettingsView: View {
                     Text(personalBest.mmss)
                         .font(.headline.monospaced())
                         .foregroundStyle(.cyan)
+                        .contentTransition(.numericText())
+                        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: personalBest)
                     Image(systemName: showPicker ? "chevron.up" : "chevron.down")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.gray)
+                        .rotationEffect(.degrees(showPicker ? 0 : 0))
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showPicker)
                 }
             }
+            .buttonStyle(PressButtonStyle(scale: 0.98))
             .listRowBackground(Color.white.opacity(0.06))
 
             if showPicker {
@@ -93,6 +98,10 @@ struct SettingsView: View {
                 .listRowBackground(Color.white.opacity(0.06))
                 .onChange(of: pbMinutes) { _, _ in savePBFromPicker() }
                 .onChange(of: pbSeconds) { _, _ in savePBFromPicker() }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
             }
         } header: {
             Text("Personal Best")
@@ -124,10 +133,12 @@ struct SettingsView: View {
                 .foregroundStyle(.white)
                 .tint(.cyan)
                 .onChange(of: remindersEnabled) { _, enabled in
-                    if enabled {
-                        scheduleReminders()
-                    } else {
-                        notificationService.cancelAllReminders()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        if enabled {
+                            scheduleReminders()
+                        } else {
+                            notificationService.cancelAllReminders()
+                        }
                     }
                 }
                 .listRowBackground(Color.white.opacity(0.06))
@@ -142,12 +153,14 @@ struct SettingsView: View {
                         ForEach(1...7, id: \.self) { day in
                             let label = weekdays[day - 1]
                             Button {
-                                if reminderDays.contains(day) {
-                                    reminderDays.remove(day)
-                                } else {
-                                    reminderDays.insert(day)
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.65)) {
+                                    if reminderDays.contains(day) {
+                                        reminderDays.remove(day)
+                                    } else {
+                                        reminderDays.insert(day)
+                                    }
+                                    scheduleReminders()
                                 }
-                                scheduleReminders()
                             } label: {
                                 Text(label)
                                     .font(.caption.weight(.semibold))
@@ -155,8 +168,10 @@ struct SettingsView: View {
                                     .frame(width: 36, height: 36)
                                     .background(reminderDays.contains(day) ? Color.cyan : Color.white.opacity(0.1))
                                     .clipShape(Circle())
+                                    .scaleEffect(reminderDays.contains(day) ? 1.05 : 1.0)
+                                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: reminderDays.contains(day))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PressButtonStyle(scale: 0.88))
                         }
                     }
 
@@ -170,6 +185,10 @@ struct SettingsView: View {
                     .onChange(of: reminderMinute) { _, _ in scheduleReminders() }
                 }
                 .listRowBackground(Color.white.opacity(0.06))
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .opacity),
+                    removal: .move(edge: .top).combined(with: .opacity)
+                ))
             }
         } header: {
             Text("Reminders")
@@ -204,22 +223,30 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private var savedBanner: some View {
-        Group {
-            if showSavedFeedback {
-                HStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text("Personal best saved!")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(Color.green.opacity(0.2))
-                .clipShape(Capsule())
-                .padding(.top, 8)
+        if showSavedFeedback {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                Text("Personal best saved!")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
             }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(Color.green.opacity(0.2))
+            .background(.ultraThinMaterial)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule().stroke(Color.green.opacity(0.3), lineWidth: 1)
+            )
+            .padding(.top, 8)
+            .transition(.asymmetric(
+                insertion: .move(edge: .top).combined(with: .scale(scale: 0.8)).combined(with: .opacity),
+                removal: .move(edge: .top).combined(with: .opacity)
+            ))
+            .animation(.spring(response: 0.45, dampingFraction: 0.7), value: showSavedFeedback)
         }
     }
 
@@ -243,9 +270,13 @@ struct SettingsView: View {
         let seconds = Double(pbMinutes * 60 + pbSeconds)
         guard seconds > 0 else { return }
         personalBest = seconds
-        showSavedFeedback = true
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.7)) {
+            showSavedFeedback = true
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            showSavedFeedback = false
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                showSavedFeedback = false
+            }
         }
     }
 
@@ -278,11 +309,14 @@ struct SafetyView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 56))
                         .foregroundStyle(.orange)
+                        .symbolEffect(.pulse)
                         .padding(.top, 32)
+                        .staggeredAppear(delay: 0.05, yOffset: -10)
 
                     Text("Safety Information")
                         .font(.title.bold())
                         .foregroundStyle(.white)
+                        .staggeredAppear(delay: 0.12)
 
                     VStack(spacing: 16) {
                         safetyPoint("Never train breath holds alone", detail: "Always have a trained safety partner present during any water breath-hold activities.")
@@ -317,5 +351,9 @@ struct SafetyView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.orange.opacity(0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.orange.opacity(0.12), lineWidth: 1)
+        )
     }
 }

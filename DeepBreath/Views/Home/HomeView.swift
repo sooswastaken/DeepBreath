@@ -14,7 +14,6 @@ struct HomeView: View {
         var checkDate = calendar.startOfDay(for: Date())
         let allDates = sessions.map { calendar.startOfDay(for: $0.date) }.sorted().reversed()
         var datesSet = Set(allDates)
-
         while datesSet.contains(checkDate) {
             count += 1
             checkDate = calendar.date(byAdding: .day, value: -1, to: checkDate)!
@@ -39,9 +38,13 @@ struct HomeView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         pbCard
+                            .staggeredAppear(delay: 0.05)
                         statsRow
+                            .staggeredAppear(delay: 0.15)
                         todayCard
+                            .staggeredAppear(delay: 0.25)
                         quickStartCard
+                            .staggeredAppear(delay: 0.35)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -56,57 +59,43 @@ struct HomeView: View {
     }
 
     private var pbCard: some View {
-        VStack(spacing: 4) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Personal Best")
-                        .font(.caption)
-                        .foregroundStyle(.gray)
-                    Text(allTimePB.mmss)
-                        .font(.system(size: 52, weight: .bold, design: .monospaced))
-                        .foregroundStyle(.cyan)
-                }
-                Spacer()
-                Image(systemName: "trophy.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(.yellow.opacity(0.8))
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Personal Best")
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+                Text(allTimePB.mmss)
+                    .font(.system(size: 52, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.cyan)
+                    .contentTransition(.numericText())
+                    .animation(.spring(response: 0.4, dampingFraction: 0.8), value: allTimePB)
             }
-            .padding(20)
-            .background(
-                LinearGradient(colors: [Color.cyan.opacity(0.15), Color.blue.opacity(0.08)],
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color.cyan.opacity(0.3), lineWidth: 1)
-            )
+            Spacer()
+            Image(systemName: "trophy.fill")
+                .font(.system(size: 44))
+                .foregroundStyle(.yellow.opacity(0.85))
+                .symbolEffect(.bounce, value: allTimePB)
         }
+        .padding(20)
+        .background(
+            LinearGradient(
+                colors: [Color.cyan.opacity(0.18), Color.blue.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(Color.cyan.opacity(0.35), lineWidth: 1)
+        )
     }
 
     private var statsRow: some View {
         HStack(spacing: 12) {
-            StatCard(
-                title: "Streak",
-                value: "\(streak)",
-                unit: "days",
-                icon: "flame.fill",
-                color: .orange
-            )
-            StatCard(
-                title: "Sessions",
-                value: "\(sessions.count)",
-                unit: "total",
-                icon: "chart.bar.fill",
-                color: .purple
-            )
-            StatCard(
-                title: "Today",
-                value: "\(todaySessions.count)",
-                unit: "done",
-                icon: "checkmark.circle.fill",
-                color: .green
-            )
+            StatCard(title: "Streak", value: "\(streak)", unit: "days", icon: "flame.fill", color: .orange)
+            StatCard(title: "Sessions", value: "\(sessions.count)", unit: "total", icon: "chart.bar.fill", color: .purple)
+            StatCard(title: "Today", value: "\(todaySessions.count)", unit: "done", icon: "checkmark.circle.fill", color: .green)
         }
     }
 
@@ -138,6 +127,7 @@ struct HomeView: View {
                         .background(Color.cyan)
                         .clipShape(Capsule())
                 }
+                .buttonStyle(PressButtonStyle(scale: 0.93))
             }
         }
         .padding(16)
@@ -192,14 +182,21 @@ struct StatCard: View {
     let icon: String
     let color: Color
 
+    @State private var appeared = false
+
     var body: some View {
         VStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(color)
+                .scaleEffect(appeared ? 1 : 0.5)
+                .animation(.spring(response: 0.5, dampingFraction: 0.55).delay(0.05), value: appeared)
+
             Text(value)
                 .font(.title2.bold())
                 .foregroundStyle(.white)
+                .contentTransition(.numericText())
+
             Text(unit)
                 .font(.caption2)
                 .foregroundStyle(.gray)
@@ -208,6 +205,7 @@ struct StatCard: View {
         .padding(.vertical, 14)
         .background(Color.white.opacity(0.06))
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .onAppear { appeared = true }
     }
 }
 
@@ -233,8 +231,9 @@ struct QuickStartButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(color.opacity(0.25), lineWidth: 1)
+                    .stroke(color.opacity(0.3), lineWidth: 1)
             )
         }
+        .buttonStyle(PressButtonStyle())
     }
 }

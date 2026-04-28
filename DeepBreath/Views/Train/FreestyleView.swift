@@ -8,31 +8,50 @@ struct FreestyleView: View {
     @Query(sort: \FreestyleHold.date, order: .reverse) private var holds: [FreestyleHold]
 
     @State private var viewModel = FreestyleViewModel()
-    @State private var showSaveAlert = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
 
+                // Pulse background when running
+                if viewModel.isRunning {
+                    RadialGradient(
+                        colors: [Color.cyan.opacity(0.08), Color.clear],
+                        center: .center,
+                        startRadius: 60,
+                        endRadius: 280
+                    )
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                }
+
                 VStack(spacing: 32) {
                     Spacer()
 
                     timerDisplay
+                        .staggeredAppear(delay: 0.05, yOffset: -8)
 
                     controlButtons
 
                     if viewModel.isStopped, let duration = viewModel.lastHoldDuration {
                         saveSection(duration: duration)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .bottom).combined(with: .opacity),
+                                removal: .move(edge: .bottom).combined(with: .opacity)
+                            ))
                     }
 
                     if !holds.isEmpty {
                         recentHolds
+                            .staggeredAppear(delay: 0.2)
                     }
 
                     Spacer()
                 }
                 .padding(.horizontal, 24)
+                .animation(.spring(response: 0.5, dampingFraction: 0.82), value: viewModel.isStopped)
+                .animation(.easeInOut(duration: 0.4), value: viewModel.isRunning)
             }
             .navigationTitle("Freestyle")
             .navigationBarTitleDisplayMode(.inline)
@@ -55,20 +74,29 @@ struct FreestyleView: View {
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .animation(.linear(duration: 0.01), value: viewModel.displayTime)
+                .shadow(
+                    color: viewModel.isRunning ? Color.cyan.opacity(0.6) : .clear,
+                    radius: viewModel.isRunning ? 20 : 0
+                )
+                .animation(.easeInOut(duration: 0.4), value: viewModel.isRunning)
 
             if !viewModel.isRunning && !viewModel.isStopped {
                 Text("Tap to start your hold")
                     .font(.subheadline)
                     .foregroundStyle(.gray)
+                    .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.isRunning)
     }
 
     private var controlButtons: some View {
-        HStack(spacing: 20) {
+        ZStack {
             if !viewModel.isRunning && !viewModel.isStopped {
                 Button {
-                    viewModel.start()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        viewModel.start()
+                    }
                 } label: {
                     Circle()
                         .fill(Color.cyan)
@@ -78,23 +106,35 @@ struct FreestyleView: View {
                                 .font(.title2)
                                 .foregroundStyle(.black)
                         )
+                        .glow(color: .cyan, radius: 16)
                 }
+                .buttonStyle(PressButtonStyle(scale: 0.91))
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+
             } else if viewModel.isRunning {
                 Button {
-                    viewModel.stop()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        viewModel.stop()
+                    }
                 } label: {
                     Circle()
-                        .fill(Color.red.opacity(0.8))
+                        .fill(Color.red.opacity(0.85))
                         .frame(width: 80, height: 80)
                         .overlay(
                             Image(systemName: "stop.fill")
                                 .font(.title2)
                                 .foregroundStyle(.white)
                         )
+                        .glow(color: .red, radius: 16)
                 }
+                .buttonStyle(PressButtonStyle(scale: 0.91))
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
+
             } else {
                 Button {
-                    viewModel.reset()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.75)) {
+                        viewModel.reset()
+                    }
                 } label: {
                     Circle()
                         .fill(Color.white.opacity(0.12))
@@ -105,8 +145,12 @@ struct FreestyleView: View {
                                 .foregroundStyle(.white)
                         )
                 }
+                .buttonStyle(PressButtonStyle(scale: 0.91))
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
         }
+        .animation(.spring(response: 0.38, dampingFraction: 0.72), value: viewModel.isRunning)
+        .animation(.spring(response: 0.38, dampingFraction: 0.72), value: viewModel.isStopped)
     }
 
     private func saveSection(duration: TimeInterval) -> some View {
@@ -127,16 +171,24 @@ struct FreestyleView: View {
                     Image(systemName: "trophy.fill")
                         .font(.title)
                         .foregroundStyle(.yellow)
+                        .symbolEffect(.bounce)
+                        .glow(color: .yellow, radius: 14)
                 }
             }
             .padding()
             .background(isPB ? Color.yellow.opacity(0.12) : Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(isPB ? Color.yellow.opacity(0.3) : Color.clear, lineWidth: 1)
+            )
 
             Button {
                 saveHold(duration: duration, isPB: isPB)
                 if isPB { personalBest = duration }
-                viewModel.reset()
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    viewModel.reset()
+                }
             } label: {
                 Label("Save Hold", systemImage: "square.and.arrow.down")
                     .font(.headline)
@@ -145,7 +197,9 @@ struct FreestyleView: View {
                     .padding()
                     .background(Color.cyan)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .glow(color: .cyan, radius: 12)
             }
+            .buttonStyle(PressButtonStyle(scale: 0.97))
         }
     }
 
@@ -155,7 +209,7 @@ struct FreestyleView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
 
-            ForEach(holds.prefix(3)) { hold in
+            ForEach(Array(holds.prefix(3).enumerated()), id: \.element.id) { index, hold in
                 HStack {
                     Text(hold.date.formatted(date: .abbreviated, time: .shortened))
                         .font(.caption)
@@ -174,6 +228,7 @@ struct FreestyleView: View {
                 .padding(.vertical, 8)
                 .background(Color.white.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
+                .staggeredAppear(delay: Double(index) * 0.07 + 0.25)
             }
         }
     }
