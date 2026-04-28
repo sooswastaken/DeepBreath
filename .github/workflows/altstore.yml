@@ -42,16 +42,17 @@ jobs:
       - name: Read build metadata
         id: meta
         run: |
-          VERSION=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
+          BASE_VERSION=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
             -showBuildSettings 2>/dev/null \
             | awk '/^ *MARKETING_VERSION/{print $3; exit}')
           BUNDLE_ID=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
             -showBuildSettings 2>/dev/null \
             | awk '/^ *PRODUCT_BUNDLE_IDENTIFIER/{print $3; exit}')
-          VERSION="${VERSION:-1.0}"
+          BASE_VERSION="${BASE_VERSION:-1.0}"
+          VERSION="${BASE_VERSION}.${{ github.run_number }}"
           BUNDLE_ID="${BUNDLE_ID:-com.deepbreath.app}"
           SIZE=$(stat -f%z "$RUNNER_TEMP/DeepBreath.ipa")
-          TAG="v${VERSION}.${{ github.run_number }}"
+          TAG="v${VERSION}"
           echo "version=$VERSION"            >> $GITHUB_OUTPUT
           echo "bundle_id=$BUNDLE_ID"        >> $GITHUB_OUTPUT
           echo "size=$SIZE"                  >> $GITHUB_OUTPUT
