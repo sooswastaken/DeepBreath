@@ -11,12 +11,7 @@
       "iconURL": "https://raw.githubusercontent.com/sooswastaken/DeepBreath/main/DeepBreath/Assets.xcassets/AppIcon.appiconset/Icon-1024.png",
       "tintColor": "#0077BE",
       "screenshotURLs": [],
-      "permissions": [
-        {
-          "type": "privacy-microphone",
-          "usageDescription": "Microphone access is not used by this app."
-        }
-      ],
+
       "versions": [
         {
           "version": "1.0",
