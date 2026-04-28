@@ -4,7 +4,7 @@
   "apps": [
     {
       "name": "DeepBreath",
-      "bundleIdentifier": "com.sudarshan.app",
+      "bundleIdentifier": "com.deepbreath.app",
       "developerName": "soos",
       "subtitle": "Freediving & Apnea Training",
       "localizedDescription": "Train your breath-hold with CO2 tables, O2 tables, freestyle sessions, and box breathing. Built for freedivers and apnea athletes.",
@@ -15,7 +15,7 @@
         {
           "version": "1.0",
           "date": "2026-04-28",
-          "downloadURL": "https://github.com/sooswastaken/DeepBreath/releases/download/v1.0.9/DeepBreath.ipa",
+          "downloadURL": "https://github.com/sooswastaken/DeepBreath/releases/download/v1.0.10/DeepBreath.ipa",
           "size": 615141
         }
       ]
