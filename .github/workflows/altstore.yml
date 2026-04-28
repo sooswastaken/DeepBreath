@@ -1,0 +1,102 @@
+name: Build & Publish AltStore IPA
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'apps.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build unsigned archive
+        run: |
+          xcodebuild \
+            -project DeepBreath.xcodeproj \
+            -scheme DeepBreath \
+            -destination "generic/platform=iOS" \
+            -archivePath "$RUNNER_TEMP/DeepBreath.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            archive
+
+      - name: Package IPA
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r \
+            "$RUNNER_TEMP/DeepBreath.xcarchive/Products/Applications/DeepBreath.app" \
+            "$RUNNER_TEMP/Payload/DeepBreath.app"
+          cd "$RUNNER_TEMP" && zip -r DeepBreath.ipa Payload/
+
+      - name: Read build metadata
+        id: meta
+        run: |
+          VERSION=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
+            -showBuildSettings 2>/dev/null \
+            | awk '/^ *MARKETING_VERSION/{print $3; exit}')
+          VERSION="${VERSION:-1.0}"
+          SIZE=$(stat -f%z "$RUNNER_TEMP/DeepBreath.ipa")
+          TAG="v${VERSION}.${{ github.run_number }}"
+          echo "version=$VERSION"            >> $GITHUB_OUTPUT
+          echo "size=$SIZE"                  >> $GITHUB_OUTPUT
+          echo "date=$(date -u +%Y-%m-%d)"   >> $GITHUB_OUTPUT
+          echo "tag=$TAG"                    >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: DeepBreath ${{ steps.meta.outputs.version }}
+          files: ${{ runner.temp }}/DeepBreath.ipa
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update apps.json
+        run: |
+          python3 - <<'PYEOF'
+          import json
+
+          version = "${{ steps.meta.outputs.version }}"
+          date    = "${{ steps.meta.outputs.date }}"
+          size    = int("${{ steps.meta.outputs.size }}")
+          tag     = "${{ steps.meta.outputs.tag }}"
+          url     = f"https://github.com/sooswastaken/DeepBreath/releases/download/{tag}/DeepBreath.ipa"
+
+          with open("apps.json") as f:
+              src = json.load(f)
+
+          entry = {"version": version, "date": date, "downloadURL": url, "size": size}
+          vs = src["apps"][0]["versions"]
+          # avoid duplicate if re-running same build
+          if vs and vs[0].get("downloadURL") == url:
+              vs[0] = entry
+          else:
+              vs.insert(0, entry)
+
+          with open("apps.json", "w") as f:
+              json.dump(src, f, indent=2)
+              f.write("\n")
+
+          print(f"apps.json updated: {version} → {url}")
+          PYEOF
+
+      - name: Commit updated apps.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps.json
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: update AltStore source [${{ steps.meta.outputs.tag }}]"
+          git push
