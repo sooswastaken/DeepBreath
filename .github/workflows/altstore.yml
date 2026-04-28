@@ -45,10 +45,15 @@ jobs:
           VERSION=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
             -showBuildSettings 2>/dev/null \
             | awk '/^ *MARKETING_VERSION/{print $3; exit}')
+          BUNDLE_ID=$(xcodebuild -project DeepBreath.xcodeproj -scheme DeepBreath \
+            -showBuildSettings 2>/dev/null \
+            | awk '/^ *PRODUCT_BUNDLE_IDENTIFIER/{print $3; exit}')
           VERSION="${VERSION:-1.0}"
+          BUNDLE_ID="${BUNDLE_ID:-com.deepbreath.app}"
           SIZE=$(stat -f%z "$RUNNER_TEMP/DeepBreath.ipa")
           TAG="v${VERSION}.${{ github.run_number }}"
           echo "version=$VERSION"            >> $GITHUB_OUTPUT
+          echo "bundle_id=$BUNDLE_ID"        >> $GITHUB_OUTPUT
           echo "size=$SIZE"                  >> $GITHUB_OUTPUT
           echo "date=$(date -u +%Y-%m-%d)"   >> $GITHUB_OUTPUT
           echo "tag=$TAG"                    >> $GITHUB_OUTPUT
@@ -69,6 +74,7 @@ jobs:
           import json
 
           version = "${{ steps.meta.outputs.version }}"
+          bundle_id = "${{ steps.meta.outputs.bundle_id }}"
           date    = "${{ steps.meta.outputs.date }}"
           size    = int("${{ steps.meta.outputs.size }}")
           tag     = "${{ steps.meta.outputs.tag }}"
@@ -78,6 +84,7 @@ jobs:
               src = json.load(f)
 
           entry = {"version": version, "date": date, "downloadURL": url, "size": size}
+          src["apps"][0]["bundleIdentifier"] = bundle_id
           vs = src["apps"][0]["versions"]
           # replace existing entry for this version; otherwise prepend
           if vs and vs[0].get("version") == version:
